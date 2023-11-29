@@ -8,12 +8,6 @@
 import Foundation
 import GPTEncoder
 
-#if os(Linux)
-    import AsyncHTTPClient
-    import FoundationNetworking
-    import NIOFoundationCompat
-#endif
-
 public class ChatGPTAPI: @unchecked Sendable {
     
     public enum Constants {
@@ -75,97 +69,6 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.historyList.append(Message(role: "user", content: userText))
         self.historyList.append(Message(role: "assistant", content: responseText))
     }
-    
-    #if os(Linux)
-    private let httpClient = HTTPClient(eventLoopGroupProvider: .createNew)
-    private var clientRequest: HTTPClientRequest {
-        var request = HTTPClientRequest(url: urlString)
-        request.method = .POST
-        headers.forEach {
-            request.headers.add(name: $0.key, value: $0.value)
-        }
-        return request
-    }
-
-    public func sendMessageStream(text: String) async throws -> AsyncThrowingStream<String, Error> {
-         var request = self.clientRequest
-        request.body = .bytes(try jsonBody(text: text, stream: true))
-        
-        let response = try await httpClient.execute(request, timeout: .seconds(25))
-        try Task.checkCancellation()
-
-        guard response.status == .ok else {
-            var data = Data()
-            for try await buffer in response.body {
-                try Task.checkCancellation()
-                data.append(.init(buffer: buffer))
-            }
-            var error = "Bad Response: \(response.status.code)"
-            if data.count > 0, let errorResponse = try? jsonDecoder.decode(ErrorRootResponse.self, from: data).error {
-                error.append("\n\(errorResponse.message)")
-            }
-            throw error
-        }
-        
-        var responseText = ""
-        return AsyncThrowingStream { [weak self] in
-            guard let self else { return nil }
-            for try await buffer in response.body {
-                try Task.checkCancellation()
-                let line = String(buffer: buffer)
-                if line.hasPrefix("data: "),
-                   let data = line.dropFirst(6).data(using: .utf8),
-                   let response = try? self?.jsonDecoder.decode(StreamCompletionResponse.self, from: data),
-                   let text = response.choices.first?.delta.content {
-                    responseText += text
-                    return text
-                }
-            }
-            self.appendToHistoryList(userText: text, responseText: responseText)
-            return nil
-        }
-    }
-
-    public func sendMessage(text: String,
-                            model: String = ChatGPTAPI.Constants.defaultModel,
-                            systemText: String = ChatGPTAPI.Constants.defaultSystemText,
-                            temperature: Double = ChatGPTAPI.Constants.defaultTemperature) async throws -> String {
-        var request = self.clientRequest
-        request.body = .bytes(try jsonBody(text: text, model: model, systemText: systemText, temperature: temperature, stream: false))
-        
-        let response = try await httpClient.execute(request, timeout: .seconds(25))
-        try Task.checkCancellation()
-        var data = Data()
-        for try await buffer in response.body {
-            try Task.checkCancellation()
-            data.append(.init(buffer: buffer))
-        }
-
-        guard response.status == .ok else {
-            var error = "Bad Response: \(response.status.code)"
-            if data.count > 0, let errorResponse = try? jsonDecoder.decode(ErrorRootResponse.self, from: data).error {
-                error.append("\n\(errorResponse.message)")
-            }
-            throw error
-        }
-        
-        do {
-            let completionResponse = try self.jsonDecoder.decode(CompletionResponse.self, from: data)
-            let responseText = completionResponse.choices.first?.message.content ?? ""
-            self.appendToHistoryList(userText: text, responseText: responseText)
-            return responseText
-        } catch {
-            throw error
-        }
-        
-    }
-
-    deinit {
-        let client = self.httpClient
-        Task.detached { try await client.shutdown() }
-        
-    }
-    #else
 
     private let urlSession = URLSession.shared
     private var urlRequest: URLRequest {
@@ -250,7 +153,6 @@ public class ChatGPTAPI: @unchecked Sendable {
             throw error
         }
     }
-    #endif
     
     public func deleteHistoryList() {
         self.historyList.removeAll()
