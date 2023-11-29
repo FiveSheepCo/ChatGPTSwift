@@ -11,7 +11,7 @@ import GPTEncoder
 public class ChatGPTAPI: @unchecked Sendable {
     
     public enum Constants {
-        public static let defaultModel = "gpt-3.5-turbo"
+        public static let defaultModel: ChatGPTModel = .gpt3_5_turbo
         public static let defaultSystemText = "You're a helpful assistant"
         public static let defaultTemperature = 0.5
     }
@@ -48,20 +48,22 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.apiKey = apiKey
     }
     
-    private func generateMessages(from text: String, systemText: String) -> [Message] {
+    private func generateMessages(from text: String, systemText: String, model: ChatGPTModel) -> [Message] {
         var messages = [systemMessage(content: systemText)] + historyList + [Message(role: "user", content: text)]
-        if gptEncoder.encode(text: messages.content).count > 4096  {
+        if gptEncoder.encode(text: messages.content).count > model.contextWindow  {
             _ = historyList.removeFirst()
-            messages = generateMessages(from: text, systemText: systemText)
+            messages = generateMessages(from: text, systemText: systemText, model: model)
         }
         return messages
     }
     
-    private func jsonBody(text: String, model: String, systemText: String, temperature: Double, stream: Bool = true) throws -> Data {
-        let request = Request(model: model,
-                        temperature: temperature,
-                        messages: generateMessages(from: text, systemText: systemText),
-                        stream: stream)
+    private func jsonBody(text: String, model: ChatGPTModel, systemText: String, temperature: Double, stream: Bool = true) throws -> Data {
+        let request = Request(
+            model: model.modelName,
+            temperature: temperature,
+            messages: generateMessages(from: text, systemText: systemText, model: model),
+            stream: stream
+        )
         return try JSONEncoder().encode(request)
     }
     
@@ -80,7 +82,7 @@ public class ChatGPTAPI: @unchecked Sendable {
     }
 
     public func sendMessageStream(text: String,
-                                  model: String = ChatGPTAPI.Constants.defaultModel,
+                                  model: ChatGPTModel = ChatGPTAPI.Constants.defaultModel,
                                   systemText: String = ChatGPTAPI.Constants.defaultSystemText,
                                   temperature: Double = ChatGPTAPI.Constants.defaultTemperature) async throws -> AsyncThrowingStream<String, Error> {
         var urlRequest = self.urlRequest
@@ -123,10 +125,12 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
     }
 
-    public func sendMessage(text: String,
-                            model: String = ChatGPTAPI.Constants.defaultModel,
-                            systemText: String = ChatGPTAPI.Constants.defaultSystemText,
-                            temperature: Double = ChatGPTAPI.Constants.defaultTemperature) async throws -> String {
+    public func sendMessage(
+        text: String,
+        model: ChatGPTModel = ChatGPTAPI.Constants.defaultModel,
+        systemText: String = ChatGPTAPI.Constants.defaultSystemText,
+        temperature: Double = ChatGPTAPI.Constants.defaultTemperature
+    ) async throws -> String {
         var urlRequest = self.urlRequest
         urlRequest.httpBody = try jsonBody(text: text, model: model, systemText: systemText, temperature: temperature, stream: false)
         
