@@ -4,28 +4,21 @@
 
 Access OpenAI ChatGPT Official API using Swift. Works on all Apple platforms.
 
+## Fork Notice
+This is a heavily modified version of the original repository, tailored to the needs of FiveSheep.  
+When in doubt, use the original version [you can find here](https://github.com/alfianlosari/ChatGPTSwift).
+
 ## Supported Platforms
 
 - iOS/tvOS 15 and above
 - macOS 12 and above
 - watchOS 8 and above
-- Linux
 
 ## Installation
 
 ### Swift Package Manager
 - File > Swift Packages > Add Package Dependency
-- Add https://github.com/alfianlosari/ChatGPTSwift.git
-
-### Cocoapods
-```ruby
-platform :ios, '15.0'
-use_frameworks!
-
-target 'MyApp' do
-  pod 'ChatGPTSwift', '~> 1.3.1'
-end
-```
+- Add https://github.com/FiveSheepCo/ChatGPTSwift.git
 
 ## Requirement
 
