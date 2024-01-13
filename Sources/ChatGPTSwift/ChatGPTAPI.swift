@@ -8,6 +8,10 @@
 import Foundation
 import GPTEncoder
 
+enum ChatGPTError: Error {
+    case contextLengthExceeded(byCount: Int)
+}
+
 public class ChatGPTAPI: @unchecked Sendable {
     
     public enum Constants {
@@ -48,11 +52,16 @@ public class ChatGPTAPI: @unchecked Sendable {
         self.apiKey = apiKey
     }
     
-    private func generateMessages(from text: String, systemText: String, model: ChatGPTModel) -> [Message] {
+    private func generateMessages(from text: String, systemText: String, model: ChatGPTModel) throws -> [Message] {
         var messages = [systemMessage(content: systemText)] + historyList + [Message(role: "user", content: text)]
-        if gptEncoder.encode(text: messages.content).count > model.contextWindow  {
-            _ = historyList.removeFirst()
-            messages = generateMessages(from: text, systemText: systemText, model: model)
+        let tokenCount = gptEncoder.encode(text: messages.content).count
+        if tokenCount > model.contextWindow  {
+            if !historyList.isEmpty {
+                _ = historyList.removeFirst()
+            } else {
+                throw ChatGPTError.contextLengthExceeded(byCount: tokenCount - model.contextWindow)
+            }
+            messages = try generateMessages(from: text, systemText: systemText, model: model)
         }
         return messages
     }
@@ -61,7 +70,7 @@ public class ChatGPTAPI: @unchecked Sendable {
         let request = Request(
             model: model.modelName,
             temperature: temperature,
-            messages: generateMessages(from: text, systemText: systemText, model: model),
+            messages: try generateMessages(from: text, systemText: systemText, model: model),
             stream: stream
         )
         return try JSONEncoder().encode(request)
