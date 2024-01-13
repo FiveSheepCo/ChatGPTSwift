@@ -8,7 +8,7 @@
 import Foundation
 import GPTEncoder
 
-enum ChatGPTError: Error {
+public enum ChatGPTError: Error {
     case contextLengthExceeded(byCount: Int)
 }
 
