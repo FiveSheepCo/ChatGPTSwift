@@ -20,10 +20,14 @@ public class ChatGPTAPI: @unchecked Sendable {
         public static let defaultTemperature = 0.5
     }
     
-    private let urlString = "https://api.openai.com/v1/chat/completions"
+    private let baseUrl: String
     private let apiKey: String
     private let gptEncoder = GPTEncoder()
     public private(set) var historyList = [Message]()
+    
+    private var urlString: String {
+        "\(baseUrl)/v1/chat/completions"
+    }
 
     let dateFormatter: DateFormatter = {
         let df = DateFormatter()
@@ -48,7 +52,8 @@ public class ChatGPTAPI: @unchecked Sendable {
         .init(role: "system", content: content)
     }
     
-    public init(apiKey: String) {
+    public init(apiKey: String, baseUrl: String = "https://api.openai.com") {
+        self.baseUrl = baseUrl
         self.apiKey = apiKey
     }
     
