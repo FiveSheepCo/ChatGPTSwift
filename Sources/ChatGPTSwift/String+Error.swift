@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension String: CustomNSError {
+extension String: Foundation.CustomNSError {
     
     public var errorUserInfo: [String : Any] {
         [

@@ -15,7 +15,7 @@ public enum ChatGPTError: Error {
 public class ChatGPTAPI: @unchecked Sendable {
     
     public enum Constants {
-        public static let defaultModel: ChatGPTModel = .gpt3_5_turbo
+        public static let defaultModel: ChatGPTModel = .gpt4o_mini
         public static let defaultSystemText = "You're a helpful assistant"
         public static let defaultTemperature = 0.5
     }
@@ -121,9 +121,9 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
         
         
-        var responseText = ""
         return AsyncThrowingStream { [weak self] in
             guard let self else { return nil }
+            var responseText = ""
             for try await line in result.lines {
                 try Task.checkCancellation()
                 if line.hasPrefix("data: "),
