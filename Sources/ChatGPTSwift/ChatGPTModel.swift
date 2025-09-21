@@ -18,7 +18,12 @@ public struct CustomModel {
 }
 
 public enum ChatGPTModel {
-    
+
+    // GPT-5
+    case gpt5
+    case gpt5_mini
+    case gpt5_nano
+
     // GPT-4 Omni
     case gpt4o_mini
     case gpt4o
@@ -56,6 +61,12 @@ public enum ChatGPTModel {
 extension ChatGPTModel {
     var modelName: String {
         switch self {
+            case .gpt5:
+                "gpt-5"
+            case .gpt5_mini:
+                "gpt-5-mini"
+            case .gpt5_nano:
+                "gpt-5-nano"
             case .gpt4o_mini:
                 "gpt-4o-mini"
             case .gpt4o:
@@ -93,6 +104,8 @@ extension ChatGPTModel {
     
     var contextWindow: Int {
         switch self {
+            case .gpt5, .gpt5_mini, .gpt5_nano:
+                400_000
             case .gpt4o_mini, .gpt4o, .gpt4_turbo, .gpt4_turbo_preview, .gpt4_turbo_vision_preview, .gpt4_turbo_0125_preview, .gpt4_turbo_1106_preview:
                 128_000
             case .gpt4, .gpt4_0613:
